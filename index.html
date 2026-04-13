@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rush Hour</title>
+    <style>
+        /* Basic styling for the game */
+        body { font-family: Arial, sans-serif; }
+        #game { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+        .car { width: 50px; height: 100px; background-color: red; position: relative; }
+        .horizontal { width: 100px; height: 50px; }
+    </style>
+</head>
+<body>
+    <h1>Rush Hour Game</h1>
+    <div id="game">
+        <div class="car horizontal" id="car-1"></div>
+        <div class="car" id="car-2"></div>
+        <div class="car horizontal" id="car-3"></div>
+        <!-- Add more cars as needed -->
+    </div>
+    <script>
+        // JavaScript code for game logic
+        const cars = document.querySelectorAll('.car');
+        // Logic to move cars and handle game state
+    </script>
+</body>
+</html>
