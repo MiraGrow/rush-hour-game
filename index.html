@@ -196,6 +196,17 @@
             transform: translateY(0);
         }
 
+        .btn-rules {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-rules:hover {
+            background: #3bb8af;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(78, 205, 196, 0.3);
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -220,6 +231,9 @@
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             animation: popIn 0.3s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
+            max-width: 500px;
         }
 
         @keyframes popIn {
@@ -253,6 +267,26 @@
             letter-spacing: 10px;
         }
 
+        .rules-list {
+            text-align: left;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            color: #333;
+            font-size: 1em;
+            line-height: 1.8;
+        }
+
+        .rules-list li {
+            margin: 10px 0;
+            list-style-position: inside;
+        }
+
+        .rules-list strong {
+            color: #667eea;
+        }
+
         .btn-close-modal {
             background: #667eea;
             color: white;
@@ -261,6 +295,18 @@
 
         .btn-close-modal:hover {
             background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-start-game {
+            background: #51cf66;
+            color: white;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        .btn-start-game:hover {
+            background: #40c057;
             transform: translateY(-2px);
         }
 
@@ -292,6 +338,14 @@
                 padding: 8px;
                 gap: 1px;
             }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .modal-title {
+                font-size: 1.8em;
+            }
         }
     </style>
 </head>
@@ -316,6 +370,23 @@
 
         <div class="controls">
             <button class="btn btn-restart" id="restartBtn">다시 시작 🔄</button>
+            <button class="btn btn-rules" id="rulesBtn">규칙 보기 📋</button>
+        </div>
+    </div>
+
+    <!-- 게임 규칙 모달 -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content">
+            <div class="modal-title">🚗 Rush Hour 게임 규칙</div>
+            <ul class="rules-list">
+                <li><strong>목표:</strong> 빨간 차를 오른쪽 출구로 탈출시키세요! 🏁</li>
+                <li><strong>보드:</strong> 6x6 그리드에서 게임이 진행됩니다</li>
+                <li><strong>이동:</strong> 차량을 드래그하여 가로 또는 세로로만 이동 가능</li>
+                <li><strong>충돌:</strong> 다른 차와 충돌할 수 없습니다</li>
+                <li><strong>전략:</strong> 가장 적은 이동으로 클리어하세요! ⭐</li>
+                <li><strong>별점:</strong> 10이동 ⭐⭐⭐ | 15이동 ⭐⭐ | 그 이상 ⭐</li>
+            </ul>
+            <button class="btn btn-start-game" id="startGameBtn">게임 시작 🎮</button>
         </div>
     </div>
 
@@ -333,7 +404,7 @@
 
     <script>
         // ==========================================
-        // 게임 상태 관리
+        // 게임 상수 정의
         // ==========================================
 
         const BOARD_SIZE = 6;
@@ -341,6 +412,10 @@
         const CELL_GAP = 2;
         const BOARD_PADDING = 10;
         const EXIT_POS = 5;
+
+        // ==========================================
+        // 게��� 상태 관리
+        // ==========================================
 
         let gameState = {
             moveCount: 0,
@@ -351,38 +426,146 @@
         };
 
         // ==========================================
-        // 차량 데이터 정의
+        // 차량 색상 풀
         // ==========================================
 
-        const PUZZLE_SETS = {
+        const VEHICLE_COLORS = ['red', 'blue', 'green', 'yellow', 'orange', 'purple'];
+
+        // ==========================================
+        // 기본 차량 구조 (난이도별)
+        // ==========================================
+
+        const VEHICLE_TEMPLATES = {
             easy: [
-                [
-                    { id: 'A', x: 1, y: 2, length: 2, direction: 'horizontal', color: 'red' },
-                    { id: 'B', x: 0, y: 0, length: 3, direction: 'vertical', color: 'blue' },
-                    { id: 'C', x: 3, y: 1, length: 2, direction: 'horizontal', color: 'green' },
-                    { id: 'D', x: 5, y: 3, length: 2, direction: 'vertical', color: 'yellow' }
-                ]
+                { length: 2, direction: 'horizontal' },
+                { length: 3, direction: 'vertical' },
+                { length: 2, direction: 'horizontal' }
             ],
             normal: [
-                [
-                    { id: 'A', x: 1, y: 2, length: 2, direction: 'horizontal', color: 'red' },
-                    { id: 'B', x: 0, y: 0, length: 3, direction: 'vertical', color: 'blue' },
-                    { id: 'C', x: 3, y: 1, length: 2, direction: 'horizontal', color: 'green' },
-                    { id: 'D', x: 5, y: 3, length: 2, direction: 'vertical', color: 'yellow' },
-                    { id: 'E', x: 2, y: 4, length: 2, direction: 'vertical', color: 'orange' }
-                ]
+                { length: 2, direction: 'horizontal' },
+                { length: 3, direction: 'vertical' },
+                { length: 2, direction: 'horizontal' },
+                { length: 2, direction: 'vertical' },
+                { length: 2, direction: 'horizontal' }
             ],
             hard: [
-                [
-                    { id: 'A', x: 1, y: 2, length: 2, direction: 'horizontal', color: 'red' },
-                    { id: 'B', x: 0, y: 0, length: 3, direction: 'vertical', color: 'blue' },
-                    { id: 'C', x: 3, y: 1, length: 3, direction: 'horizontal', color: 'green' },
-                    { id: 'D', x: 0, y: 4, length: 2, direction: 'horizontal', color: 'yellow' },
-                    { id: 'E', x: 2, y: 4, length: 2, direction: 'vertical', color: 'orange' },
-                    { id: 'F', x: 4, y: 5, length: 2, direction: 'horizontal', color: 'purple' }
-                ]
+                { length: 2, direction: 'horizontal' },
+                { length: 3, direction: 'vertical' },
+                { length: 3, direction: 'horizontal' },
+                { length: 2, direction: 'horizontal' },
+                { length: 2, direction: 'vertical' },
+                { length: 2, direction: 'horizontal' }
             ]
         };
+
+        // ==========================================
+        // 랜덤 배치 생성 함수
+        // ==========================================
+
+        /**
+         * 특정 위치가 유효한지 확인하는 함수
+         * @param {number} x - x 좌표
+         * @param {number} y - y 좌표
+         * @param {number} length - 차량 길이
+         * @param {string} direction - 차량 방향 (horizontal/vertical)
+         * @param {array} existingVehicles - 기존 차량 배열
+         * @returns {boolean} 유효 여부
+         */
+        function isValidPosition(x, y, length, direction, existingVehicles) {
+            // 보드 범위 체크
+            if (direction === 'horizontal') {
+                if (x < 0 || x + length > BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+                    return false;
+                }
+            } else {
+                if (x < 0 || x >= BOARD_SIZE || y < 0 || y + length > BOARD_SIZE) {
+                    return false;
+                }
+            }
+
+            // 다른 차량과의 충돌 체크
+            for (let existingVehicle of existingVehicles) {
+                for (let i = 0; i < length; i++) {
+                    let checkX = direction === 'horizontal' ? x + i : x;
+                    let checkY = direction === 'vertical' ? y + i : y;
+
+                    for (let j = 0; j < existingVehicle.length; j++) {
+                        let existX = existingVehicle.direction === 'horizontal' ? existingVehicle.x + j : existingVehicle.x;
+                        let existY = existingVehicle.direction === 'vertical' ? existingVehicle.y + j : existingVehicle.y;
+
+                        if (checkX === existX && checkY === existY) {
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /**
+         * 난이도에 따라 랜덤 배치된 차량을 생성하는 함수
+         * @param {string} difficulty - 난이도 (easy/normal/hard)
+         * @returns {array} 차량 배열
+         */
+        function generateRandomPuzzle(difficulty) {
+            const templates = VEHICLE_TEMPLATES[difficulty];
+            const vehicles = [];
+            let colorIndex = 0;
+
+            // 첫 번째 차량(빨간 차)은 항상 중앙 행에 배치
+            const redVehicle = {
+                id: 'A',
+                x: Math.floor(Math.random() * (BOARD_SIZE - 2 + 1)),
+                y: 2,
+                length: 2,
+                direction: 'horizontal',
+                color: 'red'
+            };
+
+            // 유효성 검증
+            if (isValidPosition(redVehicle.x, redVehicle.y, redVehicle.length, redVehicle.direction, vehicles)) {
+                vehicles.push(redVehicle);
+                colorIndex++;
+            }
+
+            // 나머지 차량들을 랜덤하게 배치
+            for (let i = 1; i < templates.length; i++) {
+                const template = templates[i];
+                let attempts = 0;
+                let placed = false;
+
+                while (attempts < 50 && !placed) {
+                    let randomX, randomY;
+
+                    if (template.direction === 'horizontal') {
+                        randomX = Math.floor(Math.random() * (BOARD_SIZE - template.length + 1));
+                        randomY = Math.floor(Math.random() * BOARD_SIZE);
+                    } else {
+                        randomX = Math.floor(Math.random() * BOARD_SIZE);
+                        randomY = Math.floor(Math.random() * (BOARD_SIZE - template.length + 1));
+                    }
+
+                    if (isValidPosition(randomX, randomY, template.length, template.direction, vehicles)) {
+                        const vehicle = {
+                            id: String.fromCharCode(65 + i), // A, B, C, ...
+                            x: randomX,
+                            y: randomY,
+                            length: template.length,
+                            direction: template.direction,
+                            color: VEHICLE_COLORS[colorIndex % VEHICLE_COLORS.length]
+                        };
+                        vehicles.push(vehicle);
+                        colorIndex++;
+                        placed = true;
+                    }
+
+                    attempts++;
+                }
+            }
+
+            return vehicles;
+        }
 
         // ==========================================
         // 충돌 체크 함수
@@ -521,6 +704,20 @@
             if (moveCount <= 10) return '⭐⭐⭐';
             if (moveCount <= 15) return '⭐⭐';
             return '⭐';
+        }
+
+        /**
+         * 게임 규칙 모달 표시
+         */
+        function showRulesModal() {
+            document.getElementById('rulesModal').classList.add('show');
+        }
+
+        /**
+         * 게임 규칙 모달 숨기기
+         */
+        function hideRulesModal() {
+            document.getElementById('rulesModal').classList.remove('show');
         }
 
         function showClearModal() {
@@ -671,7 +868,9 @@
             gameState.moveCount = 0;
             gameState.isCleared = false;
             gameState.selectedVehicle = null;
-            gameState.vehicles = JSON.parse(JSON.stringify(PUZZLE_SETS[gameState.currentDifficulty][0]));
+            
+            // 난이도에 따라 랜덤 배치 생성
+            gameState.vehicles = generateRandomPuzzle(gameState.currentDifficulty);
             
             updateMoveCounter();
             renderBoard();
@@ -679,21 +878,37 @@
         }
 
         function initializeEventListeners() {
+            // 난이도 선택
             document.querySelectorAll('.difficulty-btn').forEach(btn => {
                 btn.addEventListener('click', handleDifficultyChange);
             });
 
+            // 다시 시작 버튼
             document.getElementById('restartBtn').addEventListener('click', startNewGame);
 
+            // 규칙 보기 버튼
+            document.getElementById('rulesBtn').addEventListener('click', showRulesModal);
+
+            // 규칙 모달 - 게임 시작 버튼
+            document.getElementById('startGameBtn').addEventListener('click', () => {
+                hideRulesModal();
+                startNewGame();
+            });
+
+            // 클리어 모달 - 계속하기 버튼
             document.getElementById('closeModalBtn').addEventListener('click', () => {
                 document.getElementById('clearModal').classList.remove('show');
-                startNewGame();
+                showRulesModal();
             });
         }
 
+        // ==========================================
+        // 게임 시작 (페이지 로드 시)
+        // ==========================================
+
         window.addEventListener('DOMContentLoaded', () => {
             initializeEventListeners();
-            startNewGame();
+            showRulesModal(); // 게임 시작 시 규칙 모달 표시
         });
     </script>
 </body>
